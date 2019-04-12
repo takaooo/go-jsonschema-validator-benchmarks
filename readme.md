@@ -1,12 +1,15 @@
 # Go JSON Schema Validator Benchmarks (Draft 7 Only)
 
 *April 11, 2019*
+
 [TheWildBlue](http://github.com/TheWildBlue)
 
 ## Systems Under Test
 
 [http://github.com/qri-io/jsonschema]()
+
 [http://github.com/xeipuuv/gojsonschema]()
+
 [http://github.com/santhosh-tekuri/jsonschema]()
 
 ## Method
