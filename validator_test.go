@@ -149,8 +149,7 @@ func BenchmarkSanthosh(b *testing.B) {
 				}
 				schema, err := santhosh.Compile(temp)
 				if err != nil {
-					b.Error(err.Error())
-					continue
+					b.Fatal(err.Error())
 				}
 				// ValidateInterface() doesn't handle data from these well, intercepting to get PASS
 				if s.src == "const.json" ||
