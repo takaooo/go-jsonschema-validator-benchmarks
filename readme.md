@@ -6,15 +6,15 @@
 
 ## Systems Under Test
 
-[http://github.com/qri-io/jsonschema]()
+http://github.com/qri-io/jsonschema
 
-[http://github.com/xeipuuv/gojsonschema]()
+http://github.com/xeipuuv/gojsonschema
 
-[http://github.com/santhosh-tekuri/jsonschema]()
+http://github.com/santhosh-tekuri/jsonschema
 
 ## Method
 
-* Tested against [http://github.com/json-schema-org/JSON-Schema-Test-Suite/tests/draft7]() except `/optional` and `refRemote.json` (I didn't feel like writing the boilerplate that would allow the remote refs to resolve)
+* Tested against http://github.com/json-schema-org/JSON-Schema-Test-Suite/tests/draft7 except `/optional` and `refRemote.json` (I didn't feel like writing the boilerplate that would allow the remote refs to resolve)
 * Testing for `validate()` *speed*, not correct `validate()` *result*
 * Timed only canonical use of each implementation according to its own docs, not time spent converting input to the appropriate format for each
 

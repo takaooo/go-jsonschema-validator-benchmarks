@@ -73,27 +73,23 @@ func BenchmarkQri(b *testing.B) {
 			bytes, err := json.Marshal(s.Schema)
 			if err != nil {
 				b.Fatal(err.Error())
-				continue
 			}
 			b.StartTimer()
 			rs := &qri.RootSchema{}
 			err = json.Unmarshal(bytes, rs)
 			if err != nil {
 				b.Fatal(err.Error())
-				continue
 			}
 			for _, test := range s.Tests {
 				b.StopTimer()
 				bytes, err := json.Marshal(test.Data)
 				if err != nil {
-					b.Error(err.Error())
-					continue
+					b.Fatal(err.Error())
 				}
 				b.StartTimer()
 				valErrs, err := rs.ValidateBytes(bytes)
 				if err != nil {
-					b.Error(err.Error())
-					continue
+					b.Fatal(err.Error())
 				}
 				if len(valErrs) > 0 && test.Valid || len(valErrs) == 0 && !test.Valid {
 					b.Logf("%s. schema file: %s. schema desc: %s. test desc: %s.",
@@ -118,8 +114,7 @@ func BenchmarkXeipuu(b *testing.B) {
 				documentLoader := xeipuuv.NewGoLoader(test.Data)
 				result, err := xeipuuv.Validate(schemaLoader, documentLoader)
 				if err != nil {
-					b.Error(err.Error())
-					continue
+					b.Fatal(err.Error())
 				}
 				if result.Valid() != test.Valid {
 					b.Log(msg)
