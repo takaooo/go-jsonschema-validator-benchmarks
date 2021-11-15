@@ -1,6 +1,7 @@
 package benchmarks
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"path"
@@ -33,6 +34,7 @@ const (
 var (
 	initErr error
 	schemas = make([]Schema, 0, 64)
+	ctx = context.Background()
 )
 
 func init() {
@@ -75,7 +77,7 @@ func BenchmarkQri(b *testing.B) {
 				b.Fatal(err.Error())
 			}
 			b.StartTimer()
-			rs := &qri.RootSchema{}
+			rs := new(qri.Schema)
 			err = json.Unmarshal(bytes, rs)
 			if err != nil {
 				b.Fatal(err.Error())
@@ -87,11 +89,11 @@ func BenchmarkQri(b *testing.B) {
 					b.Fatal(err.Error())
 				}
 				b.StartTimer()
-				valErrs, err := rs.ValidateBytes(bytes)
+				valErrs, err := rs.ValidateBytes(ctx, bytes)
 				if err != nil {
 					b.Fatal(err.Error())
 				}
-				if len(valErrs) > 0 && test.Valid || len(valErrs) == 0 && !test.Valid {
+				if len(valErrs) > 0 == test.Valid {
 					b.Logf("%s. schema file: %s. schema desc: %s. test desc: %s.",
 						msg,
 						s.src,
@@ -117,7 +119,11 @@ func BenchmarkXeipuu(b *testing.B) {
 					b.Fatal(err.Error())
 				}
 				if result.Valid() != test.Valid {
-					b.Log(msg)
+					b.Logf("%s. schema file: %s. schema desc: %s. test desc: %s.",
+						msg,
+						s.src,
+						s.Description,
+						test.Description)
 				}
 			}
 		}
@@ -158,9 +164,13 @@ func BenchmarkSanthosh(b *testing.B) {
 					s.src == "uniqueItems.json" {
 					continue
 				}
-				err = schema.ValidateInterface(test.Data)
-				if err != nil && test.Valid || err == nil && !test.Valid {
-					b.Log(msg)
+				err = schema.Validate(test.Data)
+				if (err == nil) != test.Valid {
+					b.Logf("%s. schema file: %s. schema desc: %s. test desc: %s.",
+						msg,
+						s.src,
+						s.Description,
+						test.Description)
 				}
 			}
 		}
