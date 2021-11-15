@@ -1,6 +1,7 @@
 package benchmarks
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io/ioutil"
@@ -26,8 +27,8 @@ type Schema struct {
 }
 
 const (
-	dir  = "draft7-tests"
-	temp = ".schema"
+	draft7  = "draft7-tests"
+	draft201909  = "draft7-tests"
 	msg  = "incorrect validate"
 )
 
@@ -38,6 +39,7 @@ var (
 )
 
 func init() {
+	dir := draft7
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		initErr = err
@@ -77,6 +79,7 @@ func BenchmarkQri(b *testing.B) {
 				b.Fatal(err.Error())
 			}
 			b.StartTimer()
+			qri.LoadDraft2019_09()
 			rs := new(qri.Schema)
 			err = json.Unmarshal(bytes, rs)
 			if err != nil {
@@ -138,31 +141,29 @@ func BenchmarkSanthosh(b *testing.B) {
 		for _, s := range schemas {
 			// local init
 			b.StopTimer()
-			bytes, err := json.Marshal(s.Schema)
+			bytez, err := json.Marshal(s.Schema)
 			if err != nil {
 				b.Fatal(err.Error())
 			}
-			err = ioutil.WriteFile(temp, bytes, 0644)
 			if err != nil {
 				b.Fatal(err.Error())
 			}
 			b.StartTimer()
 			for _, test := range s.Tests {
-				// Compile() doesn't handle schemas from these well, intercepting to get PASS
-				if s.src == "definitions.json" ||
+				// Compiler doesn't handle schemas from these well, intercepting to get PASS
+				if
 					s.src == "ref.json" {
 					continue
 				}
-				schema, err := santhosh.Compile(temp)
-				if err != nil {
+				compiler := santhosh.NewCompiler()
+				compiler.Draft = santhosh.Draft2019
+				if err := compiler.AddResource("", bytes.NewReader(bytez)); err != nil {
 					b.Fatal(err.Error())
 				}
-				// ValidateInterface() doesn't handle data from these well, intercepting to get PASS
-				if s.src == "const.json" ||
-					s.src == "contains.json" ||
-					s.src == "enum.json" ||
-					s.src == "uniqueItems.json" {
-					continue
+				schema, err := compiler.Compile("")
+
+				if err != nil {
+					b.Fatal(err.Error())
 				}
 				err = schema.Validate(test.Data)
 				if (err == nil) != test.Valid {
