@@ -1,0 +1,236 @@
+[
+  {
+    "description": "shopify orders",
+    "schema": {
+      "properties": {
+        "orders": {
+          "type": "array",
+          "items": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "cancelled_at": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "datetime"
+              },
+              "fulfillment_status": {
+                "type": "string"
+              },
+              "order_number": {
+                "type": "integer"
+              },
+              "order_status_url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "subtotal_price": {
+                "type": "string"
+              },
+              "total_tax": {
+                "type": "string"
+              },
+              "current_total_price": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string",
+                "format": "datetime"
+              },
+              "fulfillments": {
+                "type": "array",
+                "element": "object",
+                "properties": {
+                  "created_at": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "id": {
+                    "type": "integer"
+                  },
+                  "order_id": {
+                    "type": "integer"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "tracking_company": {
+                    "type": "string"
+                  },
+                  "tracking_number": {
+                    "type": "string"
+                  },
+                  "updated_at": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              },
+              "line_items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "price": {
+                      "type": "string"
+                    },
+                    "product_id": {
+                      "type": "integer"
+                    },
+                    "quantity": {
+                      "type": "number"
+                    },
+                    "requires_shipping": {
+                      "type": "boolean"
+                    },
+                    "sku": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "tests": [
+      {
+        "description": "valid orders",
+        "data": {
+          "orders": [
+            {
+              "id": 123,
+              "created_at": "2021-08-04T15:52:04-04:00",
+              "fulfillment_status": "fulfilled",
+              "order_number": 1002,
+              "order_status_url": "https://apple.myshopify.com/690933842/orders/f604ebeedb7e3915388e1e920ccff79d/authenticate?key=fa9291eed1d6279692027acc9dcbcee4",
+              "subtotal_price": "199.00",
+              "total_tax": "0.00",
+              "current_total_price": "199.00",
+              "updated_at": "2021-08-04T15:52:04-04:00",
+              "fulfillments": [
+                {
+                  "created_at": "2012-03-13T16:09:54-04:00",
+                  "id": 255858046,
+                  "order_id": 450789469,
+                  "status": "failure",
+                  "tracking_company": "USPS",
+                  "tracking_number": "1Z2345",
+                  "updated_at": "2021-08-04T14:22:25-04:00"
+                }
+              ],
+              "line_items": [
+                {
+                  "id": 1071823187,
+                  "name": "IPod Touch 8GB - Black",
+                  "price": "199.00",
+                  "product_id": 921728736,
+                  "quantity": 5,
+                  "requires_shipping": true,
+                  "sku": "IPOD2009BLACK"
+                }
+              ]
+            }
+          ]
+        },
+        "valid": true
+      },
+      {
+        "description": "wrong type",
+        "data": {
+          "orders": [
+            {
+              "id": "hi",
+              "created_at": "2021-08-04T15:52:04-04:00",
+              "fulfillment_status": "fulfilled",
+              "order_number": 1002,
+              "order_status_url": "https://apple.myshopify.com/690933842/orders/f604ebeedb7e3915388e1e920ccff79d/authenticate?key=fa9291eed1d6279692027acc9dcbcee4",
+              "subtotal_price": "199.00",
+              "total_tax": "0.00",
+              "current_total_price": "199.00",
+              "updated_at": "2021-08-04T15:52:04-04:00",
+              "fulfillments": [
+                {
+                  "created_at": "2012-03-13T16:09:54-04:00",
+                  "id": 255858046,
+                  "order_id": 450789469,
+                  "status": "failure",
+                  "tracking_company": "USPS",
+                  "tracking_number": "1Z2345",
+                  "updated_at": "2021-08-04T14:22:25-04:00"
+                }
+              ],
+              "line_items": [
+                {
+                  "id": 1071823187,
+                  "name": "IPod Touch 8GB - Black",
+                  "price": "199.00",
+                  "product_id": 921728736,
+                  "quantity": "hi",
+                  "requires_shipping": true,
+                  "sku": "IPOD2009BLACK"
+                }
+              ]
+            }
+          ]
+        },
+        "valid": false
+      },
+      {
+        "description": "additional properties",
+        "data": {
+          "orders": [
+            {
+              "id": "hi",
+              "created_at": "2021-08-04T15:52:04-04:00",
+              "fulfillment_status": "fulfilled",
+              "order_number": 1002,
+              "order_status_url": "https://apple.myshopify.com/690933842/orders/f604ebeedb7e3915388e1e920ccff79d/authenticate?key=fa9291eed1d6279692027acc9dcbcee4",
+              "subtotal_price": "199.00",
+              "total_tax": "0.00",
+              "current_total_price": "199.00",
+              "updated_at": "2021-08-04T15:52:04-04:00",
+              "fulfillments": [
+                {
+                  "created_at": "2012-03-13T16:09:54-04:00",
+                  "id": 255858046,
+                  "order_id": 450789469,
+                  "status": "failure",
+                  "tracking_company": "USPS",
+                  "tracking_number": "1Z2345",
+                  "updated_at": "2021-08-04T14:22:25-04:00"
+                }
+              ],
+              "line_items": [
+                {
+                  "id": 1071823187,
+                  "name": "IPod Touch 8GB - Black",
+                  "price": "199.00",
+                  "product_id": 921728736,
+                  "quantity": 1,
+                  "requires_shipping": true,
+                  "sku": "IPOD2009BLACK",
+                  "a": "b"
+                }
+              ]
+            }
+          ]
+        },
+        "valid": false
+      }
+    ]
+  }
+]
