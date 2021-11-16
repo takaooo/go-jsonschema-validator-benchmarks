@@ -40,7 +40,7 @@ var (
 )
 
 func init() {
-	dir := draft201909
+	dir := custom
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		initErr = err
@@ -148,7 +148,7 @@ func BenchmarkSanthosh(b *testing.B) {
 				compiler := santhosh.NewCompiler()
 				compiler.Draft = santhosh.Draft2019
 				if err := compiler.AddResource("", bytes.NewReader(schemaJSON)); err != nil {
-					b.Fatal("failed to compile1!" + err.Error() + s.src)
+					b.Fatal(err.Error())
 				}
 				schema, err := compiler.Compile("")
 				if err != nil {
