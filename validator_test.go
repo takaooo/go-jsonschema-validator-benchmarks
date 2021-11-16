@@ -72,38 +72,31 @@ func BenchmarkQri(b *testing.B) {
 	if initErr != nil {
 		b.Fatal(initErr.Error())
 	}
-	for i := 0; i < 1; i++ {
+	for i := 0; i < b.N; i++ {
 		for _, s := range schemas {
 			// local init
 			b.StopTimer()
-			bytes, err := json.Marshal(s.Schema)
+			schemaJSON, err := json.Marshal(s.Schema)
 			if err != nil {
 				b.Fatal(err.Error())
 			}
 			b.StartTimer()
 			qri.LoadDraft2019_09()
 			rs := new(qri.Schema)
-			err = json.Unmarshal(bytes, rs)
+			err = json.Unmarshal(schemaJSON, rs)
 			if err != nil {
 				b.Fatal(err.Error())
 			}
 			for _, test := range s.Tests {
 				b.StopTimer()
-				bytes, err := json.Marshal(test.Data)
+				testCaseJSON, err := json.Marshal(test.Data)
 				if err != nil {
 					b.Fatal(err.Error())
 				}
 				b.StartTimer()
-				valErrs, err := rs.ValidateBytes(ctx, bytes)
+				_, err = rs.ValidateBytes(ctx, testCaseJSON)
 				if err != nil {
 					b.Fatal(err.Error())
-				}
-				if len(valErrs) > 0 == test.Valid {
-					b.Logf("%s. schema file: %s. schema desc: %s. test desc: %s.",
-						msg,
-						s.src,
-						s.Description,
-						test.Description)
 				}
 			}
 		}
@@ -124,16 +117,9 @@ func BenchmarkXeipuu(b *testing.B) {
 					continue
 				}
 				documentLoader := xeipuuv.NewGoLoader(test.Data)
-				result, err := xeipuuv.Validate(schemaLoader, documentLoader)
+				_, err := xeipuuv.Validate(schemaLoader, documentLoader)
 				if err != nil {
 					b.Fatal(err.Error())
-				}
-				if result.Valid() != test.Valid {
-					b.Logf("%s. schema file: %s. schema desc: %s. test desc: %s.",
-						msg,
-						s.src,
-						s.Description,
-						test.Description)
 				}
 			}
 		}
@@ -166,16 +152,9 @@ func BenchmarkSanthosh(b *testing.B) {
 				}
 				schema, err := compiler.Compile("")
 				if err != nil {
-					b.Fatal("failed to compile! " + s.src + "===" + err.Error())
+					b.Fatal(err.Error())
 				}
-				err = schema.Validate(test.Data)
-				if (err == nil) != test.Valid {
-					b.Logf("%s. schema file: %s. schema desc: %s. test desc: %s.",
-						msg,
-						s.src,
-						s.Description,
-						test.Description)
-				}
+				_ = schema.Validate(test.Data)
 			}
 		}
 	}
@@ -201,16 +180,7 @@ func BenchmarkQriWithoutCompiler(b *testing.B) {
 			}
 			b.StartTimer()
 			for _, test := range s.Tests {
-				vs := rs.Validate(ctx, test.Data)
-				b.StopTimer()
-				if len(*vs.Errs) > 0 == test.Valid {
-					b.Logf("%s. schema file: %s. schema desc: %s. test desc: %s.",
-						msg,
-						s.src,
-						s.Description,
-						test.Description)
-				}
-				b.StartTimer()
+				_ = rs.Validate(ctx, test.Data)
 			}
 		}
 	}
@@ -237,19 +207,10 @@ func BenchmarkXeipuuWithoutCompiler(b *testing.B) {
 					b.Fatal(err.Error())
 				}
 				b.StartTimer()
-				result, err := schema.Validate(documentLoader)
+				_, err = schema.Validate(documentLoader)
 				if err != nil {
 					b.Fatal(err.Error())
 				}
-				b.StopTimer()
-				if result.Valid() != test.Valid {
-					b.Logf("%s. schema file: %s. schema desc: %s. test desc: %s.",
-						msg,
-						s.src,
-						s.Description,
-						test.Description)
-				}
-				b.StartTimer()
 			}
 		}
 	}
@@ -285,16 +246,7 @@ func BenchmarkSanthoshWithoutCompiler(b *testing.B) {
 					b.Fatal(err.Error())
 				}
 				b.StartTimer()
-				err = schema.Validate(test.Data)
-				b.StopTimer()
-				if (err == nil) != test.Valid {
-					b.Logf("%s. schema file: %s. schema desc: %s. test desc: %s.",
-						msg,
-						s.src,
-						s.Description,
-						test.Description)
-				}
-				b.StartTimer()
+				_ = schema.Validate(test.Data)
 			}
 		}
 	}
