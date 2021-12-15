@@ -1,6 +1,6 @@
 [
   {
-    "description": "shopify orders",
+    "description": "my_test",
     "schema": {
       "properties": {
         "orders": {
@@ -107,6 +107,11 @@
       }
     },
     "tests": [
+      {
+        "description": "blank test",
+        "data": {},
+        "valid": true
+      },
       {
         "description": "valid orders",
         "data": {

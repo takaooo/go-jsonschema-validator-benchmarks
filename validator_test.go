@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	qri "github.com/qri-io/jsonschema"
-	santhosh "github.com/santhosh-tekuri/jsonschema"
+	santhosh "github.com/santhosh-tekuri/jsonschema/v5"
 	xeipuuv "github.com/xeipuuv/gojsonschema"
 )
 
@@ -27,55 +27,126 @@ type Schema struct {
 }
 
 const (
-	draft7  = "draft7-tests"
-	draft201909  = "draft2019-09-tests"
-	custom = "custom-tests"
-	msg  = "incorrect validate"
+	draft201909 = "draft2019-09-tests"
+	draft7      = "draft7-tests"
+	custom      = "custom-tests"
+	msg         = "incorrect validate"
 )
 
 var (
-	initErr error
-	schemas = make([]Schema, 0, 64)
 	ctx = context.Background()
 )
 
-func init() {
-	dir := custom
+func getSchemas(dir string) ([]Schema, error) {
+	schemas := make([]Schema, 0, 64)
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
-		initErr = err
-		return
+		return nil, err
 	}
 	for _, file := range files {
 		if !file.IsDir() {
-			bytes, err := ioutil.ReadFile(path.Join(dir, file.Name()))
+			fileBytes, err := ioutil.ReadFile(path.Join(dir, file.Name()))
 			if err != nil {
-				initErr = err
-				return
+				return nil, err
 			}
 			var fileSchemas []Schema
-			err = json.Unmarshal(bytes, &fileSchemas)
+			err = json.Unmarshal(fileBytes, &fileSchemas)
 			if err != nil {
-				initErr = err
-				return
+				return nil, err
 			}
+
 			for _, schema := range fileSchemas {
-				if file.Name() == "refRemote.json" {continue}
+				if file.Name() == "refRemote.json" || file.Name() == "vocabulary.json" {
+					continue
+				}
 				schema.src = file.Name()
 				schemas = append(schemas, schema)
 			}
 		}
 	}
+	return schemas, nil
 }
 
-func BenchmarkQri(b *testing.B) {
-	if initErr != nil {
-		b.Fatal(initErr.Error())
+func get2019(b *testing.B) []Schema {
+	b.StopTimer()
+	schemas, err := getSchemas(draft201909)
+	if err != nil {
+		b.Fatal(err.Error())
 	}
+	b.StartTimer()
+	return schemas
+}
+
+func getCustom(b *testing.B) []Schema {
+	b.StopTimer()
+	schemas, err := getSchemas(custom)
+	if err != nil {
+		b.Fatal(err.Error())
+	}
+	b.StartTimer()
+	return schemas
+}
+
+func BenchmarkQri2019(b *testing.B) {
+	schemas := get2019(b)
+	benchmarkQri(schemas, b)
+}
+
+//func BenchmarkXeipuu2019(b *testing.B) {
+//	schemas := get2019(b)
+//	benchmarkXeipuu(schemas, b)
+//}
+
+func BenchmarkSanthosh2019(b *testing.B) {
+	schemas := get2019(b)
+	benchmarkSanthosh(schemas, b)
+}
+
+func BenchmarkQri2019NoCompiler(b *testing.B) {
+	schemas := get2019(b)
+	qri.LoadDraft2019_09()
+	benchmarkQriWithoutCompiler(schemas, b)
+}
+
+//func BenchmarkXeipuu2019NoCompiler(b *testing.B) {
+//	schemas := get2019(b)
+//	benchmarkXeipuuWithoutCompiler(schemas, b)
+//}
+
+func BenchmarkSanthosh2019NoCompiler(b *testing.B) {
+	schemas := get2019(b)
+	benchmarkSanthoshWithoutCompiler(schemas, b)
+}
+
+func BenchmarkQriCustom(b *testing.B) {
+	schemas := getCustom(b)
+	qri.LoadDraft2019_09()
+	benchmarkQri(schemas, b)
+}
+
+func BenchmarkXeipuuCustom(b *testing.B) {
+	schemas := getCustom(b)
+	benchmarkXeipuu(schemas, b)
+}
+
+func BenchmarkSanthoshCustom(b *testing.B) {
+	schemas := getCustom(b)
+	benchmarkSanthosh(schemas, b)
+}
+
+func BenchmarkQriCustomNoCompiler(b *testing.B) {
+	schemas := getCustom(b)
+	benchmarkQriWithoutCompiler(schemas, b)
+}
+
+func BenchmarkSanthoshCustomNoCompiler(b *testing.B) {
+	schemas := getCustom(b)
+	benchmarkSanthoshWithoutCompiler(schemas, b)
+}
+
+func benchmarkQri(schemas []Schema, b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		for _, s := range schemas {
-			// local init
-			b.StopTimer()
 			schemaJSON, err := json.Marshal(s.Schema)
 			if err != nil {
 				b.Fatal(err.Error())
@@ -83,39 +154,23 @@ func BenchmarkQri(b *testing.B) {
 			b.StartTimer()
 			qri.LoadDraft2019_09()
 			rs := new(qri.Schema)
+
 			err = json.Unmarshal(schemaJSON, rs)
 			if err != nil {
 				b.Fatal(err.Error())
 			}
 			for _, test := range s.Tests {
-				b.StopTimer()
-				testCaseJSON, err := json.Marshal(test.Data)
-				if err != nil {
-					b.Fatal(err.Error())
-				}
-				b.StartTimer()
-				_, err = rs.ValidateBytes(ctx, testCaseJSON)
-				if err != nil {
-					b.Fatal(err.Error())
-				}
+				_ = rs.Validate(ctx, test.Data)
 			}
 		}
 	}
 }
 
-func BenchmarkXeipuu(b *testing.B) {
-	if initErr != nil {
-		b.Fatal(initErr.Error())
-	}
+func benchmarkXeipuu(schemas []Schema, b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		for _, s := range schemas {
 			schemaLoader := xeipuuv.NewGoLoader(s.Schema)
 			for _, test := range s.Tests {
-				//following tests cause a stack overflow
-				if s.Description == "Location-independent identifier" ||
-					s.Description == "$anchor inside an enum is not a real identifier" {
-					continue
-				}
 				documentLoader := xeipuuv.NewGoLoader(test.Data)
 				_, err := xeipuuv.Validate(schemaLoader, documentLoader)
 				if err != nil {
@@ -126,13 +181,9 @@ func BenchmarkXeipuu(b *testing.B) {
 	}
 }
 
-func BenchmarkSanthosh(b *testing.B) {
-	if initErr != nil {
-		b.Fatal(initErr.Error())
-	}
+func benchmarkSanthosh(schemas []Schema, b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		for _, s := range schemas {
-			// local init
 			b.StopTimer()
 			schemaJSON, err := json.Marshal(s.Schema)
 			if err != nil {
@@ -140,74 +191,36 @@ func BenchmarkSanthosh(b *testing.B) {
 			}
 			b.StartTimer()
 			for _, test := range s.Tests {
-				// Compiler doesn't handle schemas from these well, intercepting to get PASS
-				if s.src == "vocabulary.json" ||
-					s.src == "ref.json" {
-					continue
-				}
 				compiler := santhosh.NewCompiler()
 				compiler.Draft = santhosh.Draft2019
 				if err := compiler.AddResource("", bytes.NewReader(schemaJSON)); err != nil {
-					b.Fatal(err.Error())
+					b.Fatal("failed to compile1!" + err.Error() + s.src)
 				}
 				schema, err := compiler.Compile("")
 				if err != nil {
-					b.Fatal(err.Error())
+					b.Fatal("failed to compile! " + s.src + "===" + err.Error())
 				}
-				_ = schema.Validate(test.Data)
+				err = schema.Validate(test.Data)
 			}
 		}
 	}
 }
 
-func BenchmarkQriWithoutCompiler(b *testing.B) {
-	if initErr != nil {
-		b.Fatal(initErr.Error())
-	}
+func benchmarkQriWithoutCompiler(schemas []Schema, b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		for _, s := range schemas {
-			// local init
 			b.StopTimer()
-			bytes, err := json.Marshal(s.Schema)
+			schemaJSON, err := json.Marshal(s.Schema)
 			if err != nil {
 				b.Fatal(err.Error())
 			}
-			qri.LoadDraft2019_09()
 			rs := new(qri.Schema)
-			err = json.Unmarshal(bytes, rs)
-			if err != nil {
+			if err = json.Unmarshal(schemaJSON, rs); err != nil {
 				b.Fatal(err.Error())
 			}
 			b.StartTimer()
 			for _, test := range s.Tests {
 				_ = rs.Validate(ctx, test.Data)
-			}
-		}
-	}
-}
-
-func BenchmarkXeipuuWithoutCompiler(b *testing.B) {
-	if initErr != nil {
-		b.Fatal(initErr.Error())
-	}
-	for i := 0; i < b.N; i++ {
-		for _, s := range schemas {
-			b.StopTimer()
-			schemaLoader := xeipuuv.NewGoLoader(s.Schema)
-			b.StartTimer()
-			for _, test := range s.Tests {
-				b.StopTimer()
-				if s.Description == "Location-independent identifier" ||
-					s.Description == "$anchor inside an enum is not a real identifier" {
-					continue
-				}
-				documentLoader := xeipuuv.NewGoLoader(test.Data)
-				schema, err := xeipuuv.NewSchema(schemaLoader)
-				if err != nil {
-					b.Fatal(err.Error())
-				}
-				b.StartTimer()
-				_, err = schema.Validate(documentLoader)
 				if err != nil {
 					b.Fatal(err.Error())
 				}
@@ -216,37 +229,26 @@ func BenchmarkXeipuuWithoutCompiler(b *testing.B) {
 	}
 }
 
-func BenchmarkSanthoshWithoutCompiler(b *testing.B) {
-	if initErr != nil {
-		b.Fatal(initErr.Error())
-	}
+func benchmarkSanthoshWithoutCompiler(schemas []Schema, b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		for _, s := range schemas {
-			// local init
 			b.StopTimer()
 			schemaJSON, err := json.Marshal(s.Schema)
 			if err != nil {
 				b.Fatal(err.Error())
 			}
+			compiler := santhosh.NewCompiler()
+			compiler.Draft = santhosh.Draft2019
+			if err = compiler.AddResource("", bytes.NewReader(schemaJSON)); err != nil {
+				b.Fatal(err.Error())
+			}
+			schema, err := compiler.Compile("")
+			if err != nil {
+				b.Fatal(err.Error())
+			}
 			b.StartTimer()
 			for _, test := range s.Tests {
-				b.StopTimer()
-				// Compiler doesn't handle schemas from these well, intercepting to get PASS
-				if s.src == "vocabulary.json" ||
-					s.src == "ref.json" {
-					continue
-				}
-				compiler := santhosh.NewCompiler()
-				compiler.Draft = santhosh.Draft2019
-				if err = compiler.AddResource("", bytes.NewReader(schemaJSON)); err != nil {
-					b.Fatal(err.Error())
-				}
-				var schema *santhosh.Schema
-				if schema, err = compiler.Compile(""); err != nil {
-					b.Fatal(err.Error())
-				}
-				b.StartTimer()
-				_ = schema.Validate(test.Data)
+				err = schema.Validate(test.Data)
 			}
 		}
 	}
